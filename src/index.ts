@@ -1,16 +1,46 @@
-import { Client, Intents } from 'discord.js'
+import { registerFont } from 'canvas'
+import { Client, GatewayIntentBits, Partials } from 'discord.js'
+import { updateWatchedChannels } from './commands/repost'
 import { connectDatabase } from './database/connect'
+import { deleteOldHash, getImages } from './database/models/images'
+import { deleteOldUrl, getUrls } from './database/models/links'
 import { interactionCreate } from './events/interaction-create'
 import { messageCreate } from './events/message-create'
 import { onReady } from './events/on-ready'
 import { validateEnv } from './utils/validate-env'
-
-(async () => {
+;(async () => {
   if (!validateEnv()) return
+  registerFont('fonts/Roboto-Bold.ttf', {
+    family: 'Roboto',
+    weight: 'bold'
+  })
+
+  registerFont('fonts/Roboto-Italic.ttf', {
+    family: 'Roboto',
+    weight: 'normal',
+    style: 'italic'
+  })
+
+  registerFont('fonts/Roboto-BoldItalic.ttf', {
+    family: 'Roboto',
+    weight: 'bold',
+    style: 'italic'
+  })
+
+  registerFont('fonts/Roboto-Regular.ttf', {
+    family: 'Roboto',
+    weight: 'normal'
+  })
 
   const bot = new Client({
-    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.DIRECT_MESSAGES, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_MESSAGE_REACTIONS],
-    partials: ['CHANNEL']
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.DirectMessages,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMessageReactions,
+      GatewayIntentBits.MessageContent
+    ],
+    partials: [Partials.Channel]
   })
 
   bot.on('ready', onReady)
@@ -22,4 +52,12 @@ import { validateEnv } from './utils/validate-env'
   await connectDatabase()
 
   await bot.login(process.env.DISCORD_BOT_TOKEN)
+
+  await deleteOldHash()
+  await deleteOldUrl()
+
+  await getImages()
+  await getUrls()
+
+  await updateWatchedChannels()
 })()
